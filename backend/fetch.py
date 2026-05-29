@@ -52,7 +52,7 @@ async def process_chat_message(user_message: str) -> dict:
     
     # 3. Fire-and-Forget: Paket an den Raspberry Pi senden, 
     # OHNE dass das Frontend darauf warten muss.
-    asyncio.create_task(send_to_raspberry(media_data))
+    #asyncio.create_task(send_to_raspberry(media_data))
     
     # 4. NUR den reinen Text an das Frontend (script.js) zurückgeben
     return {

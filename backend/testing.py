@@ -171,9 +171,9 @@ def run_visualizer(mp3_path, threshold=-15.0, fps_ms=50):
 
 if __name__ == "__main__":
     # HIER den Namen deiner MP3-Datei anpassen
-    MEINE_AUDIO_DATEI = "speaker_0.mp3" 
+    MEINE_AUDIO_DATEI = "ausgabe.mp3" 
     
     # Justiere diesen Wert, wenn der Mund zu oft/selten aufgeht
-    MEIN_SCHWELLENWERT = -20.0 
+    MEIN_SCHWELLENWERT = -25.0 
     
     run_visualizer(MEINE_AUDIO_DATEI, threshold=MEIN_SCHWELLENWERT)

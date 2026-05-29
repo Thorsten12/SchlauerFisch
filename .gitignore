@@ -1,5 +1,19 @@
+# Temporäre Text- und JSON-Dateien ignorieren
 *.txt
 *.json
+
+# Ausnahmen (Diese Dateien WERDEN auf GitHub hochgeladen)
 !prompt.json
+!mein_text.txt  
+
+# Python Cache-Müll ignorieren
 __pycache__/
 *.pyc
+
+# Den kompletten .model Ordner ignorieren (wegen der riesigen .onnx Dateien)
+.model/*
+
+
+!.model/.gitkeep
+
+*.mp3
