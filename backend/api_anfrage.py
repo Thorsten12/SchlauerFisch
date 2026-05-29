@@ -11,6 +11,14 @@ if os.path.exists("config.json"):
 else:
     print("Warnung: config.json wurde nicht gefunden!")
 
+if os.path.exists("prompt.json"):
+    with open("prompt.json", "r", encoding="utf-8") as file:
+        prompt_data = json.load(file)
+        # Den Wert vom Schlüssel "prompt" auslesen
+        SYSTEM_PROMPT = prompt_data.get("prompt", "")
+else:
+    print("Warnung: prompt.json wurde nicht gefunden!")
+
 # 1. Konfiguration
 MODEL_NAME = "deepseek/deepseek-v4-flash"
 
@@ -26,7 +34,7 @@ def get_omini_response(user_input: str) -> str:
         completion = client.chat.completions.create(
             model=MODEL_NAME,
             messages=[
-                {"role": "system", "content": "Antworte kurz und präzise."},
+                {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": user_input}
             ]
         )

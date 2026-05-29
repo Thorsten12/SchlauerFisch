@@ -1,6 +1,5 @@
 *.txt
 *.json
-pycache/
+!prompt.json
+__pycache__/
 *.pyc
-
-
