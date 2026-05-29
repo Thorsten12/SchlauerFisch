@@ -5,8 +5,8 @@ from pathlib import Path
 
 def convert_txt_to_mp3(raw_text):
     BASE_DIR = Path(__file__).resolve().parent
-    model_path = (BASE_DIR / ".." / ".model" / "de_DE-thorsten_emotional-medium.onnx").resolve()
-    output_mp3_path = BASE_DIR / "ausgabe.mp3"
+    model_path = (BASE_DIR.parent.parent / ".model" / "de_DE-thorsten_emotional-medium.onnx").resolve()
+    output_mp3_path = BASE_DIR / "ausgabe.mp3" # könntem an noch in Data machen
 
     # --- EMOTION AUSLESEN ---
     emotion_match = re.match(r'^\[(\d+)\]', raw_text)

@@ -1,10 +1,22 @@
 import os
+import sys
+import json
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.concurrency import run_in_threadpool # Wichtig für synchrone Funktionen
 from flask import json
 from pydantic import BaseModel
 import uvicorn
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+#Pfade zu den Unterordnern bauen
+BACKEND_DIR = os.path.join(BASE_DIR, "backend")
+CONVERTER_DIR = os.path.join(BASE_DIR, "backend", "converter")
+
+#Python-Suchpfad hinzufügen
+sys.path.append(BACKEND_DIR)
+sys.path.append(CONVERTER_DIR)
 
 
 # Importiere die Hauptlogik aus deiner separaten Datei
@@ -61,9 +73,7 @@ async def chat_endpoint(request: ChatRequest):
 
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
-BASE_DIR = os.path.dirname(CURRENT_DIR) # Geht eine Ebene nach oben
-FRONTEND_DIR = os.path.join(BASE_DIR, "frontend")
-
+FRONTEND_DIR = os.path.join(CURRENT_DIR, "frontend") 
 
 app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")
 

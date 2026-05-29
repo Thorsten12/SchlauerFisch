@@ -1,18 +1,25 @@
 from openai import OpenAI
 import json
 import os
+import sys
+
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# 2. Baue die absoluten Pfade zu den JSON-Dateien
+config_pfad = os.path.join(CURRENT_DIR, "config.json")
+prompt_pfad = os.path.join(CURRENT_DIR, "prompt.json")
 
 # Prüfen, ob die Datei existiert, um Abstürze zu vermeiden
-if os.path.exists("config.json"):
-    with open("config.json", "r", encoding="utf-8") as file:
+if os.path.exists(config_pfad):
+    with open(config_pfad, "r", encoding="utf-8") as file:
         config_data = json.load(file)
         # Den Wert vom Schlüssel "api" auslesen
         OPENROUTER_API_KEY = config_data.get("api", "") 
 else:
     print("Warnung: config.json wurde nicht gefunden!")
 
-if os.path.exists("prompt.json"):
-    with open("prompt.json", "r", encoding="utf-8") as file:
+if os.path.exists(prompt_pfad):
+    with open(prompt_pfad, "r", encoding="utf-8") as file:
         prompt_data = json.load(file)
         # Den Wert vom Schlüssel "prompt" auslesen
         SYSTEM_PROMPT = prompt_data.get("prompt", "")
