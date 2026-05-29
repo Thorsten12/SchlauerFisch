@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify
 import base64
+import motor_control
 
 app = Flask(__name__)
 
@@ -12,6 +13,8 @@ def execute_fish():
     # 2. Motor-Befehle extrahieren
     fps_ms = data.get("fps_ms")
     motor_frames = data.get("motor_frames")
+
+    motor_control.execute_timeline(motor_frames, fps_ms)
     
     # HIER kommt dein Code ins Spiel:
     # - Audio decodieren und abspielen
