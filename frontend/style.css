@@ -20,8 +20,8 @@
   --text0: #e8e6e1;
   --text1: #a8a69f;
   --text2: #6a6864;
-  --accent: #1D9E75;
-  --accent-dim: #0F6E56;
+  --accent: #506e22;
+  --accent-dim: #3b501c;
   --accent-text: #9FE1CB;
   --r-sm: 6px;
   --r-md: 10px;
@@ -61,7 +61,7 @@ html, body {
 
 .fish-frame {
   width: min(90vw, 520px);
-  aspect-ratio: 1 / 1;
+  aspect-ratio: 1.5 / 1;
   border-radius: var(--r-lg);
   border: 1px solid var(--border);
   background: var(--bg1);
@@ -117,7 +117,136 @@ html, body {
   margin-bottom: 10px;
 }
 
-.input-row { display: flex; gap: 8px; }
+/* Das Mikrofon am Fisch positionieren */
+/* Standard-Zustand des Mikrofons */
+.fish-mic {
+  position: absolute;
+  top: 50%;
+  left: 00%;
+  width: 200px;
+  z-index: 60;
+  
+  /* Unsichtbar machen, aber für Fade-Out im DOM lassen */
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease-out, visibility 0.3s ease-out;
+  
+  /* Das Schweben läuft durchgehend, ist aber unsichtbar, bis es gebraucht wird */
+  animation: micFloat 2s ease-in-out infinite alternate;
+}
+
+/* Zustand: Aufnahme läuft -> Mikrofon einblenden */
+#app.recording .fish-mic {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Die Keyframes für das Schweben bleiben */
+@keyframes micFloat {
+  0% { 
+    transform: translateY(10px); 
+  }
+  100% { 
+    transform: translateY(-10px); 
+  }
+}
+
+/* 1. Container: Nimmt die volle Breite ein */
+.input-row { 
+  display: flex; 
+  gap: 8px; 
+  width: 100%; 
+  overflow: hidden; 
+  transition: gap 0.5s ease;
+}
+
+/* Wenn Aufnahme läuft, schrumpft die Lücke verzögert mit weg */
+.input-row.recording {
+  gap: 0px;
+  transition-delay: 0.15s; 
+}
+
+/* 2. Basis-Zustand für alle Elemente (weiche Animation für den "Zurück"-Weg) */
+.input-row #userInput,
+.input-row #sendBtn,
+.input-row #audioBtn {
+  overflow: hidden; 
+  white-space: nowrap;
+  transition: max-width 0.4s ease, padding 0.4s ease, opacity 0.3s ease, flex-grow 0.4s ease;
+}
+
+/* Wir setzen Start-Werte für max-width, damit der Browser sauber auf 0 rechnen kann */
+.input-row #userInput {
+  flex: 1 1 auto;
+  max-width: 500px; 
+}
+
+.input-row #sendBtn {
+  flex: 0 0 auto;
+  max-width: 150px;
+}
+
+.input-row #audioBtn {
+  flex: 0 0 auto;
+}
+
+
+/* =========================================
+   ZUSTAND: AUFNAHME LÄUFT (.recording)
+   ========================================= */
+
+/* 3. MITTE: Senden-Button verschwindet ZUERST */
+.input-row.recording #sendBtn {
+  max-width: 0px;
+  padding-left: 0;
+  padding-right: 0;
+  border-width: 0;
+  margin: 0;
+  opacity: 0;
+  pointer-events: none;
+  /* Keine Verzögerung -> Startet sofort */
+  transition: max-width 0.3s ease, padding 0.3s ease, opacity 0.2s ease;
+}
+
+/* 4. LINKS: Input-Feld verschwindet DANACH */
+/* Wenn Aufnahme läuft, schrumpft die Lücke verzögert mit weg */
+#app.recording .input-row {
+  gap: 0px;
+  transition-delay: 0.15s; 
+}
+
+/* MITTE: Senden-Button verschwindet ZUERST */
+#app.recording #sendBtn {
+  max-width: 0px;
+  padding-left: 0;
+  padding-right: 0;
+  border-width: 0;
+  margin: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: max-width 0.3s ease, padding 0.3s ease, opacity 0.2s ease;
+}
+
+/* LINKS: Input-Feld verschwindet DANACH */
+#app.recording #userInput {
+  max-width: 0px;
+  flex-grow: 0; 
+  padding-left: 0;
+  padding-right: 0;
+  border-width: 0;
+  margin: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: max-width 0.4s ease 0.15s, padding 0.4s ease 0.15s, flex-grow 0.4s ease 0.15s, opacity 0.3s ease 0.15s;
+}
+
+/* RECHTS: Audio-Button füllt sanft die entstehenden Lücken */
+#app.recording #audioBtn {
+  flex-grow: 1; 
+  border-radius: var(--r-md);
+  transition: flex-grow 0.55s ease; 
+}
+
 
 #userInput {
   flex: 1;
@@ -155,6 +284,35 @@ html, body {
 #sendBtn:hover { background: var(--accent); }
 #sendBtn:active { transform: scale(0.97); }
 #sendBtn:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
+
+#audioBtn {
+  background: var(--accent-dim);
+  color: var(--accent-text);
+  border: none;
+  border-radius: var(--r-sm);
+  padding: 9px 18px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+  white-space: nowrap;
+}
+
+#audioBtn {
+  position: relative;
+  z-index: 10;
+  transition: flex-grow 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+              background 0.3s,
+              border-radius 0.4s;
+  flex-grow: 0;
+  white-space: nowrap;
+}
+
+#audioBtn:hover { background: var(--accent); }
+#audioBtn:active { transform: scale(0.97); }
+#audioBtn:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
+
 
 .status-row {
   display: flex;
