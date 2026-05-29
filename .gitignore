@@ -1,5 +1,5 @@
 *.txt
-
+*.json
 pycache/
 *.pyc
 

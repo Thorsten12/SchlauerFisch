@@ -1,13 +1,17 @@
 import os
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
+from fastapi.concurrency import run_in_threadpool # Wichtig für synchrone Funktionen
 from pydantic import BaseModel
 import uvicorn
+
 
 # Importiere die Hauptlogik aus deiner separaten Datei
 from fetch import process_chat_message
 from sst import transcribe_audio                #importiert die funktion zum transkipieren
-from openclaw_starter import start_openclaw_gateway
+from api_anfrage import get_omini_response
+
+#from openclaw_starter import start_openclaw_gateway
 
 app = FastAPI(title="Billy Bass API")
 
@@ -26,8 +30,14 @@ async def chat_endpoint(request: ChatRequest):
         raise HTTPException(status_code=400, detail="Nachricht darf nicht leer sein.")
 
     try:
-        response_data = await process_chat_message(request.message)
+        ai_text = await run_in_threadpool(get_omini_response, request.message)
+
+        if ai_text.startswith("Fehler:"):
+            raise HTTPException(status_code=502, detail=ai_text)
+
+        response_data = await process_chat_message(ai_text)
         return response_data
+    
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Verarbeitungsfehler: {str(e)}")
 
@@ -39,11 +49,15 @@ FRONTEND_DIR = os.path.join(BASE_DIR, "frontend")
 
 app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")
 
-"""if __name__ == "__main__":
-    # Startet den Uvicorn-Server direkt aus Python heraus
-    uvicorn.run("api:app", host="0.0.0.0", port=8000, reload=True)"""
-
 if __name__ == "__main__":
+    # Startet den Uvicorn-Server direkt aus Python heraus
+    uvicorn.run("api:app", host="0.0.0.0", port=8000, reload=True)
+
+
+
+
+#probably obsolet
+"""if __name__ == "__main__":
     gateway_process = None
     try:
         # 1. Zuerst das OpenClaw-Gateway hochfahren
@@ -65,4 +79,4 @@ if __name__ == "__main__":
             gateway_process.wait()
             print("-> OpenClaw erfolgreich beendet.")
 
-
+"""
