@@ -14,7 +14,7 @@ sys.path.append(BACKEND_DIR)
 sys.path.append(CONVERTER_DIR)
 
 # Importiere die ausgelagerte Logik
-from backend.processing import process_text_pipeline, process_audio_pipeline
+from backend.processing import process_text_pipeline # , process_audio_pipeline
 
 app = FastAPI(title="Billy Bass API")
 
@@ -34,27 +34,29 @@ async def chat_endpoint(request: ChatRequest):
         raise HTTPException(status_code=500, detail=f"Verarbeitungsfehler: {str(e)}")
 
 @app.post("/api/upload-audio")
-async def upload_audio_endpoint(audio: UploadFile = File(...)):
-    """Verarbeitet eingesprochene Nachrichten vom Frontend."""
-    temp_file_path = os.path.join(BACKEND_DIR, "temp_recording.webm")
+async def upload_audio_endpoint():
+    return "0"
+# async def upload_audio_endpoint(audio: UploadFile = File(...)):
+#     """Verarbeitet eingesprochene Nachrichten vom Frontend."""
+#     temp_file_path = os.path.join(BACKEND_DIR, "temp_recording.webm")
     
-    try:
-        # Audio temporär speichern
-        with open(temp_file_path, "wb") as buffer:
-            shutil.copyfileobj(audio.file, buffer)
+#     try:
+#         # Audio temporär speichern
+#         with open(temp_file_path, "wb") as buffer:
+#             shutil.copyfileobj(audio.file, buffer)
         
-        # Audio-Pipeline aufrufen
-        response_data = await process_audio_pipeline(temp_file_path)
-        return response_data
+#         # Audio-Pipeline aufrufen
+#         response_data = await process_audio_pipeline(temp_file_path)
+#         return response_data
 
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Audio-Verarbeitungsfehler: {str(e)}")
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=f"Audio-Verarbeitungsfehler: {str(e)}")
     
-    finally:
-        audio.file.close()
-        # Optional: Speicherplatz freigeben, wenn STT abgeschlossen ist
-        if os.path.exists(temp_file_path):
-            os.remove(temp_file_path)
+#     finally:
+#         audio.file.close()
+#         # Optional: Speicherplatz freigeben, wenn STT abgeschlossen ist
+#         if os.path.exists(temp_file_path):
+#             os.remove(temp_file_path)
 
 # Frontend einbinden
 FRONTEND_DIR = os.path.join(BASE_DIR, "frontend") 

@@ -19,8 +19,36 @@ def convert_txt_to_mp3(raw_text):
         speaker_id = 4
 
     # --- TEXT BEREINIGEN ---
-    raw_text = raw_text.replace('[PAUSE]', ' ... ')
-    clean_text = re.sub(r'\[.*?\]', '', raw_text).strip()
+    # 0. Das geschützte Leerzeichen reparieren (NBSP)
+    clean_text = raw_text.replace('\u00A0', ' ')
+
+    # 1. Gewünschte Pausen-Tokens in echte Satzzeichen umwandeln
+    clean_text = clean_text.replace('[PAUSE]', ' ... ')
+    
+    # 2. Alle restlichen eckigen Klammern (z.B. [NEIN], [LACHEN]) entfernen
+    clean_text = re.sub(r'\[.*?\]', '', clean_text)
+
+    # 3. Gedankenstriche immun umwandeln (via sicheren Unicode-IDs)
+    # \u002D = Standard-Minus, \u2013 = En-Dash (–), \u2014 = Em-Dash (—), \u2212 = Mathe-Minus
+    clean_text = re.sub(r'[\u002D\u2013\u2014\u2212]+', ', ', clean_text)
+
+    # 4. Typografische Apostrophe (’) sicher in ein Standard-Apostroph (') umwandeln
+    clean_text = clean_text.replace('\u2019', "'")
+    
+    # Komische typografische Anführungszeichen löschen (z.B. „ “ ”)
+    clean_text = re.sub(r'[\u201E\u201C\u201D]', '', clean_text)
+
+    # 5. Markdown-Formatierungen und Zeilenumbrüche entfernen
+    clean_text = re.sub(r'[*_#]+', '', clean_text)
+    clean_text = clean_text.replace('\n', ' ').replace('\r', '')
+
+    # 6. DER STAUBSAUGER (Jetzt komplett Datei-Encoding-sicher!)
+    # \w erkennt in Python 3 automatisch Buchstaben INKLUSIVE aller Umlaute!
+    # Erlaubt bleiben: Buchstaben (inkl. Ö, Ä, Ü, ß), Zahlen, Leerzeichen (\s), ., ! ? '
+    clean_text = re.sub(r'[^\w\s.,!?\']', '', clean_text)
+
+    # 7. Überflüssige Leerzeichen reduzieren und Ränder säubern
+    clean_text = re.sub(r'\s+', ' ', clean_text).strip()
 
     print(f"Generiere MP3-Audio (Emotion/Speaker ID: {speaker_id})...")
 
