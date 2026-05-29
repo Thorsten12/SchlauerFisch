@@ -1,3 +1,5 @@
+#toter call funktioniert nur wenn auf dem server openclaw instaliert ist
+
 import subprocess
 import time
 import socket

@@ -64,3 +64,5 @@ if __name__ == "__main__":
             gateway_process.terminate()
             gateway_process.wait()
             print("-> OpenClaw erfolgreich beendet.")
+
+
