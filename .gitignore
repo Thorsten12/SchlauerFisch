@@ -1,0 +1,6 @@
+*.txt
+
+pycache/
+*.pyc
+
+

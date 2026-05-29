@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Billy Bass</title>
+
+  <link rel="stylesheet" href="style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&family=Sedgwick+Ave+Display&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div id="app">
+    <h2 class="sr-only">Billy Bass Steuerung</h2>
+
+    <div class="wordmark">
+      Billy Bass &nbsp;<span>// Schlauer Fisch</span>
+    </div>
+
+    <div class="fish-frame" id="fishFrame">
+      
+      <div class="idle-wrap" id="idleWrap">
+        <div class="fish-scaler">
+          <div class="fish">
+            <div class="eye"></div>
+            <div class="eyebrow"></div>
+            <div class="eye eye-right"></div>
+            <div class="eyebrow eyebrow-right"></div>
+            <div class="mouth"></div>
+            <div class="mouth-border"></div>
+            <div class="side-fin">
+              <div class="side-fin-detail"></div>
+              <div class="side-fin-detail"></div>
+              <div class="side-fin-detail"></div>
+            </div>
+            
+            <span class="thorn thorn1">V</span>
+            <span class="thorn thorn2">v</span>
+            <span class="thorn thorn3">V</span>
+            <span class="thorn thorn4">v</span>
+            <span class="thorn thorn5">V</span>
+            <span class="thorn thorn6">v</span>
+            <span class="thorn thorn7">V</span>
+            <span class="thorn thorn8">v</span>
+            <span class="thorn thorn9">V</span>
+          </div>
+          
+          <div class="back-fin">
+            <div class="back-fin-detail fin-detail1"></div>
+            <div class="back-fin-detail fin-detail2"></div>
+            <div class="back-fin-detail fin-detail3"></div>
+          </div>
+          
+          <div class="top-fin">
+            <div class="top-fin-detail"></div>
+            <div class="top-fin-detail"></div>
+            <div class="top-fin-detail"></div>
+          </div>
+          
+          <div class="bottom-fin">
+            <div class="bottom-fin-detail"></div>
+            <div class="bottom-fin-detail"></div>
+            <div class="bottom-fin-detail"></div>
+          </div>
+          
+          <div class="shadow"></div>
+        </div>
+      </div>
+
+      <div class="gif-wrap" id="gifWrap">
+        <img
+          src="https://i.gifer.com/WiC8.gif"
+          alt="Verarbeite..."
+        />
+      </div>
+
+    </div>
+
+    <div class="panel">
+      <div class="panel-label">Nachricht</div>
+
+      <div class="input-row">
+        <input
+          type="text"
+          id="userInput"
+          placeholder="Sag dem Fisch etwas..."
+          autocomplete="off"
+        />
+        <button id="sendBtn">Senden</button>
+      </div>
+
+      <div class="status-row">
+        <div class="dot" id="dot"></div>
+        <span class="status-txt" id="statusTxt">bereit</span>
+      </div>
+
+      <div class="divider" id="divider"></div>
+
+      <div class="reply-label" id="replyLabel">
+        Antwort
+      </div>
+
+      <div class="reply-text" id="replyText"></div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
