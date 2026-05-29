@@ -5,6 +5,7 @@ from fastapi import FastAPI, HTTPException, File, UploadFile
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 import uvicorn
+import traceback
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 BACKEND_DIR = os.path.join(BASE_DIR, "backend")
@@ -31,6 +32,11 @@ async def chat_endpoint(request: ChatRequest):
         response_data = await process_text_pipeline(request.message)
         return response_data
     except Exception as e:
+        # Das hier zwingt Python, den EXAKTEN Fehler rot ins Terminal zu drucken!
+        print("\n--- HIER IST DER WAHRE FEHLER ---")
+        traceback.print_exc() 
+        print("---------------------------------\n")
+        
         raise HTTPException(status_code=500, detail=f"Verarbeitungsfehler: {str(e)}")
 
 @app.post("/api/upload-audio")

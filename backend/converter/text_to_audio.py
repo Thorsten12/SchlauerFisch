@@ -3,10 +3,14 @@ import sys
 import re
 from pathlib import Path
 
+BASE_DIR = Path(__file__).resolve().parent
+DATA_DIR = BASE_DIR.parent.parent / "data"
+
+audio_output_path = DATA_DIR / "ausgabe.mp3"
+model_path = (BASE_DIR.parent.parent / ".model" / "de_DE-thorsten_emotional-medium.onnx").resolve()
+
 def convert_txt_to_mp3(raw_text):
-    BASE_DIR = Path(__file__).resolve().parent
-    model_path = (BASE_DIR.parent.parent / ".model" / "de_DE-thorsten_emotional-medium.onnx").resolve()
-    output_mp3_path = BASE_DIR / "ausgabe.mp3" # könntem an noch in Data machen
+    
 
     # --- EMOTION AUSLESEN ---
     emotion_match = re.match(r'^\[(\d+)\]', raw_text)
@@ -67,7 +71,7 @@ def convert_txt_to_mp3(raw_text):
         "-i", "pipe:0",
         "-af", "adelay=1000|1000",  # ← Fix: Stereo-safe (beide Kanäle)
         "-b:a", "128k",
-        str(output_mp3_path)
+        str(audio_output_path)
     ]
 
     try:
@@ -85,11 +89,11 @@ def convert_txt_to_mp3(raw_text):
 
         if piper_process.returncode != 0:
             print(f"Piper Fehler:\n{piper_stderr.decode('utf-8', errors='replace')}")
-            return output_mp3_path
+            return audio_output_path
 
         if not piper_stdout:
             print("Fehler: Piper hat keine Audiodaten ausgegeben!")
-            return output_mp3_path
+            return audio_output_path
 
         print(f"Piper hat {len(piper_stdout)} Bytes Rohdaten generiert.")
 
@@ -103,7 +107,7 @@ def convert_txt_to_mp3(raw_text):
         _, ffmpeg_stderr = ffmpeg_process.communicate(input=piper_stdout)
 
         if ffmpeg_process.returncode == 0:
-            print(f"Erfolgreich: Audio gespeichert unter '{output_mp3_path}'.")
+            print(f"Erfolgreich: Audio gespeichert unter '{audio_output_path}'.")
         else:
             print(f"FFmpeg Fehler:\n{ffmpeg_stderr.decode('utf-8', errors='replace')}")
 
@@ -112,4 +116,4 @@ def convert_txt_to_mp3(raw_text):
     except Exception as e:
         print(f"Ein unerwarteter Fehler ist aufgetreten: {e}")
 
-    return output_mp3_path
+    return str(audio_output_path)

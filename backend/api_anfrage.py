@@ -1,30 +1,37 @@
 from openai import OpenAI
 import json
-import os
-import sys
+from pathlib import Path
 
-CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+# 1. Haupt-Ordner definieren
+CURRENT_DIR = Path(__file__).resolve().parent  # Das ist der Ordner "backend"
+DATA_DIR = CURRENT_DIR.parent / "data"         # Das ist der Ordner "data"
 
-# 2. Baue die absoluten Pfade zu den JSON-Dateien
-config_pfad = os.path.join(CURRENT_DIR, "config.json")
-prompt_pfad = os.path.join(CURRENT_DIR, "prompt.json")
+# Den data-Ordner zur Sicherheit erstellen, falls er fehlt
+DATA_DIR.mkdir(exist_ok=True)
 
-# Prüfen, ob die Datei existiert, um Abstürze zu vermeiden
-if os.path.exists(config_pfad):
+# 2. Die Pfade richtig zuweisen:
+config_pfad = CURRENT_DIR / "config.json"  # <-- Bleibt im "backend"-Ordner!
+prompt_pfad = DATA_DIR / "prompt.json"     # <-- Geht in den "data"-Ordner!
+
+# 3. Variablen vorher leer definieren
+OPENROUTER_API_KEY = ""
+SYSTEM_PROMPT = "Antworte kurz und präzise." # Fallback
+
+# 4. Config laden (aus backend/config.json)
+if config_pfad.exists():
     with open(config_pfad, "r", encoding="utf-8") as file:
         config_data = json.load(file)
-        # Den Wert vom Schlüssel "api" auslesen
         OPENROUTER_API_KEY = config_data.get("api", "") 
 else:
-    print("Warnung: config.json wurde nicht gefunden!")
+    print(f"Warnung: config.json wurde nicht gefunden unter: {config_pfad}")
 
-if os.path.exists(prompt_pfad):
+# 5. Prompt laden (aus data/prompt.json)
+if prompt_pfad.exists():
     with open(prompt_pfad, "r", encoding="utf-8") as file:
         prompt_data = json.load(file)
-        # Den Wert vom Schlüssel "prompt" auslesen
-        SYSTEM_PROMPT = prompt_data.get("prompt", "")
+        SYSTEM_PROMPT = prompt_data.get("prompt", SYSTEM_PROMPT)
 else:
-    print("Warnung: prompt.json wurde nicht gefunden!")
+    print(f"Warnung: prompt.json wurde nicht gefunden unter: {prompt_pfad}")
 
 # 1. Konfiguration
 MODEL_NAME = "deepseek/deepseek-v4-flash"
