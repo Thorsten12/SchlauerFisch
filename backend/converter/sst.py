@@ -22,6 +22,10 @@ print("✅ STT-Modell erfolgreich geladen und bereit!")
 
 #Hauptfunktion um in api.py zu funktionieren
 
+import subprocess
+import os
+# librosa, torch, tqdm etc. bleiben natürlich auch importiert
+
 def transcribe_audio(audio_pfad: str) -> str:
     """
     Nimmt den Pfad zu einer Audiodatei, transkribiert sie in 30s-Blöcken
@@ -29,8 +33,25 @@ def transcribe_audio(audio_pfad: str) -> str:
     """
     print(f"Lade Audiodatei für Transkription: '{audio_pfad}'...")
     
-    # librosa lädt die komplette Datei in den Arbeitsspeicher
-    audio_array, sampling_rate = librosa.load(audio_pfad, sr=16000)
+    # --- NEU: KONVERTIERUNG VON WEBM ZU WAV ---
+    # Wir erstellen einen neuen Dateinamen, der auf .wav endet
+    wav_pfad = audio_pfad.replace(".webm", ".wav")
+    
+    # FFmpeg wandelt die Datei lautlos im Hintergrund in sauberes 16kHz Mono-Audio um
+    subprocess.run([
+        "ffmpeg", "-y", "-i", audio_pfad, 
+        "-ar", "16000", "-ac", "1", 
+        wav_pfad
+    ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    # ------------------------------------------
+
+    # librosa lädt jetzt die SAUBERE .wav Datei in den Arbeitsspeicher (nicht mehr die .webm)
+    audio_array, sampling_rate = librosa.load(wav_pfad, sr=16000)
+    
+    # Optional aber sauber: Die temporäre .wav Datei direkt wieder löschen, 
+    # da wir das Audio jetzt komplett im Arbeitsspeicher (audio_array) haben.
+    if os.path.exists(wav_pfad):
+        os.remove(wav_pfad)
 
     # Manuelles Zerschneiden in 30-Sekunden-Blöcke
     chunk_length_s = 30 
@@ -65,6 +86,5 @@ def transcribe_audio(audio_pfad: str) -> str:
     
     print(f"✅ Transkription abgeschlossen!")
     
-    # Wir geben den Text ZURÜCK an denjenigen, der die Funktion gerufen hat, 
-    # anstatt ihn direkt in eine .txt zu speichern.
+    # Wir geben den Text ZURÜCK an denjenigen, der die Funktion gerufen hat
     return end_resultat

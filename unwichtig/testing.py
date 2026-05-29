@@ -2,7 +2,11 @@ import pygame
 import sys
 import time
 import math
+import json
+import base64
+import io
 import os
+
 try:
     from pydub import AudioSegment
 except ImportError:
@@ -10,170 +14,165 @@ except ImportError:
     sys.exit()
 
 # ---------------------------------------------------------
-# 1. AUDIO ANALYSE LOGIK
+# KONSTANTEN
 # ---------------------------------------------------------
-def analyze_audio_to_frames(file_path, fps_ms=50, volume_threshold=-15.0):
-    print(f"Lese Audio ein und berechne Frames für: {file_path} ...")
-    try:
-        audio = AudioSegment.from_file(file_path)
-    except Exception as e:
-        print(f"Fehler beim Laden der Audio-Datei: {e}")
-        sys.exit()
-    
+JSON_PATH     = r"C:\Users\Tsyri\Desktop\SchlauerFisch\SchlauerFisch\output.json"
+WIDTH, HEIGHT = 900, 500
+
+BG_COLOR      = (30, 30, 30)
+TEXT_COLOR    = (255, 255, 255)
+ACTIVE_COLOR  = (255, 235, 59)
+INACTIVE_COLOR= (60, 60, 60)
+FISH_COLOR    = (46, 204, 113)
+MOUTH_COLOR   = (20, 20, 20)
+
+MOTOR_LABELS  = ["KOPF", "KÖRPER", "FLOSSE"]
+MOTOR_COLORS  = [
+    (52,  152, 219),   # Blau  – Kopf
+    (46,  204, 113),   # Grün  – Körper
+    (231, 76,  60),    # Rot   – Flosse
+]
+
+# ---------------------------------------------------------
+# JSON LADEN & AUDIO ZUSAMMENBAUEN
+# ---------------------------------------------------------
+def load_json(path):
+    with open(path, "r") as f:
+        return json.load(f)
+
+def decode_blocks_to_audio(blocks):
+    """Alle Base64-Audio-Blöcke zu einem einzigen AudioSegment zusammenführen."""
+    combined = AudioSegment.empty()
+    for block in blocks:
+        raw = base64.b64decode(block["audio_base64"])
+        segment = AudioSegment.from_file(io.BytesIO(raw), format="mp3")
+        combined += segment
+    return combined
+
+def flatten_frames(blocks):
+    """Alle motor_frames aus allen Blöcken hintereinander in eine Liste."""
     frames = []
-    # Gehe in 50ms-Schritten durch das Audio
-    for i in range(0, len(audio), fps_ms):
-        chunk = audio[i:i + fps_ms]
-        volume = -100 if math.isinf(chunk.dBFS) else chunk.dBFS
-        
-        body_fwd = 0
-        body_bwd = 0
-        
-        # Schwellenwert-Logik
-        if volume > volume_threshold:
-            mouth_fwd = 220
-            mouth_bwd = 0
-            body_fwd = 150 
-        else:
-            mouth_fwd = 0
-            mouth_bwd = 180
-            
-        # NEU: Wir speichern jetzt ein Dictionary, um die Lautstärke (volume)
-        # an das Pygame-Fenster weiterzugeben
-        frames.append({
-            "motor": [mouth_fwd, mouth_bwd, body_fwd, body_bwd],
-            "volume": volume
-        })
-        
-    print(f"Fertig! {len(frames)} Frames berechnet.")
-    return frames
+    for block in blocks:
+        fps_ms = block["fps_ms"]
+        for frame in block["motor_frames"]:
+            frames.append(frame)
+    return frames, fps_ms
 
 # ---------------------------------------------------------
-# 2. PYGAME VISUALISIERUNG MIT LIVE-PEGEL
+# PYGAME VISUALISIERUNG
 # ---------------------------------------------------------
-def run_visualizer(mp3_path, threshold=-15.0, fps_ms=50):
-    if not os.path.exists(mp3_path):
-        print(f"Datei '{mp3_path}' nicht gefunden!")
-        return
+def run_visualizer(json_path):
+    print(f"Lade {json_path} ...")
+    blocks = load_json(json_path)
 
-    # Timeline im Voraus berechnen
-    motor_frames = analyze_audio_to_frames(mp3_path, fps_ms, threshold)
+    print("Dekodiere Audio ...")
+    audio = decode_blocks_to_audio(blocks)
+
+    # Audio als WAV in BytesIO für pygame
+    audio_buffer = io.BytesIO()
+    audio.export(audio_buffer, format="wav")
+    audio_buffer.seek(0)
+
+    motor_frames, fps_ms = flatten_frames(blocks)
+    print(f"{len(motor_frames)} Frames geladen, {fps_ms}ms pro Frame.")
 
     pygame.init()
-    # Das Fenster etwas breiter machen für den Pegel
-    WIDTH, HEIGHT = 800, 400
     screen = pygame.display.set_mode((WIDTH, HEIGHT))
-    pygame.display.set_caption("🐟 Billy Bass - Live Volume Tracker")
-    clock = pygame.time.Clock()
-    
-    font = pygame.font.SysFont("Arial", 24, bold=True)
-    small_font = pygame.font.SysFont("monospace", 18)
+    pygame.display.set_caption("🐟 Billy Bass – Motor Simulator")
+    clock  = pygame.time.Clock()
 
-    BG_COLOR = (30, 30, 30)
-    FISH_COLOR = (46, 204, 113)
-    MOUTH_COLOR = (20, 20, 20)
-    TEXT_COLOR = (255, 255, 255)
-    ACTIVE_COLOR = (255, 235, 59)
-    VOL_COLOR = (52, 152, 219)
+    font       = pygame.font.SysFont("Arial",    28, bold=True)
+    small_font = pygame.font.SysFont("monospace", 18)
+    label_font = pygame.font.SysFont("Arial",    22, bold=True)
 
     pygame.mixer.init()
-    pygame.mixer.music.load(mp3_path)
+    pygame.mixer.music.load(audio_buffer)
     pygame.mixer.music.play()
-    
+
     start_time = time.time()
-    running = True
+    running    = True
 
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
 
-        elapsed = time.time() - start_time
+        elapsed   = time.time() - start_time
         frame_idx = int((elapsed * 1000) / fps_ms)
 
         if frame_idx >= len(motor_frames):
             running = False
             break
 
-        # Daten für den aktuellen Frame entpacken
-        current_data = motor_frames[frame_idx]
-        current_frame = current_data["motor"]
-        current_volume = current_data["volume"]
-        
-        is_mouth_open = current_frame[0] > 0
+        frame = motor_frames[frame_idx]  # [kopf, körper, flosse]
+        head_on, body_on, tail_on = frame[0], frame[1], frame[2]
 
         screen.fill(BG_COLOR)
 
-        # --- FISCH ZEICHNEN (Linke Seite) ---
-        center_x, center_y = WIDTH // 2 - 120, HEIGHT // 2 - 50
-        pygame.draw.circle(screen, FISH_COLOR, (center_x, center_y), 100)
-        pygame.draw.circle(screen, TEXT_COLOR, (center_x - 30, center_y - 40), 15)
-        pygame.draw.circle(screen, (0, 0, 0), (center_x - 35, center_y - 40), 5)
+        # --- FISCH ZEICHNEN ---
+        cx, cy = 260, 220
 
-        if is_mouth_open:
-            pygame.draw.ellipse(screen, MOUTH_COLOR, (center_x - 80, center_y + 10, 80, 60))
-            status_text = "🗣️ MUND AUF"
-            status_color = ACTIVE_COLOR
+        # Körper
+        body_col = (ACTIVE_COLOR if body_on else FISH_COLOR)
+        pygame.draw.ellipse(screen, body_col, (cx - 110, cy - 60, 220, 130))
+
+        # Schwanz / Flosse
+        tail_col = ACTIVE_COLOR if tail_on else (80, 160, 80)
+        tail_points = [
+            (cx + 110, cy),
+            (cx + 175, cy - 55),
+            (cx + 175, cy + 55),
+        ]
+        pygame.draw.polygon(screen, tail_col, tail_points)
+
+        # Kopf
+        head_col = ACTIVE_COLOR if head_on else FISH_COLOR
+        pygame.draw.circle(screen, head_col, (cx - 90, cy), 65)
+
+        # Auge
+        pygame.draw.circle(screen, TEXT_COLOR, (cx - 110, cy - 20), 12)
+        pygame.draw.circle(screen, (0, 0, 0),   (cx - 113, cy - 20),  5)
+
+        # Mund
+        mouth_open = body_on  # Mund = Körper-Motor als Proxy
+        if mouth_open:
+            pygame.draw.ellipse(screen, MOUTH_COLOR, (cx - 150, cy + 10, 55, 35))
         else:
-            pygame.draw.line(screen, MOUTH_COLOR, (center_x - 80, center_y + 40), (center_x, center_y + 40), 8)
-            status_text = "🤐 MUND ZU"
-            status_color = TEXT_COLOR
+            pygame.draw.line(screen, MOUTH_COLOR,
+                             (cx - 150, cy + 25), (cx - 100, cy + 25), 5)
 
-        # --- LIVE PEGEL-METER ZEICHNEN (Rechte Seite) ---
-        # Wir definieren eine Skala von -50 dB (leise) bis 0 dB (maximal)
-        bar_x = WIDTH - 300
-        bar_y_start = 50
-        bar_width = 40
-        bar_max_height = 250
-        
-        # Hintergrund des Pegels (Dunkelgrau)
-        pygame.draw.rect(screen, (50, 50, 50), (bar_x, bar_y_start, bar_width, bar_max_height))
-        
-        # Berechne, wie hoch der Pegel gerade ausschlagen muss
-        display_vol = max(-50, min(0, current_volume)) # Limitiere optisch zwischen -50 und 0
-        vol_percent = (display_vol + 50) / 50.0 
-        
-        current_bar_height = int(bar_max_height * vol_percent)
-        current_bar_y = bar_y_start + (bar_max_height - current_bar_height)
-        
-        # Der Balken wird gelb, wenn er über den Threshold schießt
-        bar_color = ACTIVE_COLOR if current_volume > threshold else VOL_COLOR
-        pygame.draw.rect(screen, bar_color, (bar_x, current_bar_y, bar_width, current_bar_height))
+        # --- MOTOR STATUS BOXEN ---
+        box_w, box_h = 160, 80
+        box_y        = HEIGHT - 140
+        total_w      = len(MOTOR_LABELS) * box_w + (len(MOTOR_LABELS) - 1) * 20
+        start_x      = (WIDTH - total_w) // 2
 
-        # Rote Schwellenwert-Linie (Threshold) einzeichnen
-        thresh_percent = (threshold + 50) / 50.0
-        thresh_y = bar_y_start + (bar_max_height - int(bar_max_height * thresh_percent))
-        pygame.draw.line(screen, (255, 50, 50), (bar_x - 15, thresh_y), (bar_x + bar_width + 15, thresh_y), 3)
+        for i, (label, color) in enumerate(zip(MOTOR_LABELS, MOTOR_COLORS)):
+            active   = bool(frame[i])
+            box_x    = start_x + i * (box_w + 20)
+            bg_color = color if active else INACTIVE_COLOR
+            pygame.draw.rect(screen, bg_color,   (box_x, box_y, box_w, box_h), border_radius=12)
+            pygame.draw.rect(screen, TEXT_COLOR, (box_x, box_y, box_w, box_h), 2, border_radius=12)
 
-        # --- TEXTE RENDERN ---
-        # Fisch-Status
-        txt_status = font.render(status_text, True, status_color)
-        txt_array = small_font.render(f"Array: {current_frame}", True, (200, 200, 200))
-        
-        # Pegel-Status (Direkt neben dem Balken)
-        txt_vol = font.render(f"{current_volume:.1f} dB", True, bar_color)
-        txt_thresh = small_font.render(f"Schwelle: {threshold} dB", True, (255, 100, 100))
+            txt = label_font.render(label, True, TEXT_COLOR)
+            state_txt = font.render("AN" if active else "AUS", True,
+                                    TEXT_COLOR if active else (120, 120, 120))
 
-        # Texte auf dem Bildschirm platzieren
-        screen.blit(txt_status, (center_x - txt_status.get_width() // 2, HEIGHT - 130))
-        screen.blit(txt_array, (center_x - txt_array.get_width() // 2, HEIGHT - 90))
-        
-        # Damit die dB-Zahl mit dem Pegel mitwandert:
-        text_y_pos = current_bar_y - 15 if current_volume > -49 else bar_y_start + bar_max_height - 20
-        screen.blit(txt_vol, (bar_x + 60, text_y_pos))
-        screen.blit(txt_thresh, (bar_x + 60, thresh_y - 10))
+            screen.blit(txt,       (box_x + box_w // 2 - txt.get_width() // 2,       box_y + 10))
+            screen.blit(state_txt, (box_x + box_w // 2 - state_txt.get_width() // 2, box_y + 40))
+
+        # --- FRAME INFO ---
+        info = small_font.render(
+            f"Block-Frame {frame_idx} / {len(motor_frames)}   |   t = {elapsed:.2f}s",
+            True, (150, 150, 150)
+        )
+        screen.blit(info, (20, 20))
 
         pygame.display.flip()
         clock.tick(60)
 
     pygame.quit()
-    print("Test beendet.")
+    print("Simulation beendet.")
 
 if __name__ == "__main__":
-    # HIER den Namen deiner MP3-Datei anpassen
-    MEINE_AUDIO_DATEI = "ausgabe.mp3" 
-    
-    # Justiere diesen Wert, wenn der Mund zu oft/selten aufgeht
-    MEIN_SCHWELLENWERT = -25.0 
-    
-    run_visualizer(MEINE_AUDIO_DATEI, threshold=MEIN_SCHWELLENWERT)
+    run_visualizer(JSON_PATH)

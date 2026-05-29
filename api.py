@@ -1,4 +1,5 @@
 import os
+import subprocess
 import sys
 import shutil
 from fastapi import FastAPI, HTTPException, File, UploadFile
@@ -15,7 +16,7 @@ sys.path.append(BACKEND_DIR)
 sys.path.append(CONVERTER_DIR)
 
 # Importiere die ausgelagerte Logik
-from backend.processing import process_text_pipeline # , process_audio_pipeline
+from backend.processing import process_text_pipeline  #, process_audio_pipeline
 
 app = FastAPI(title="Billy Bass API")
 
@@ -41,28 +42,39 @@ async def chat_endpoint(request: ChatRequest):
 
 @app.post("/api/upload-audio")
 async def upload_audio_endpoint():
-    return "0"
-# async def upload_audio_endpoint(audio: UploadFile = File(...)):
-#     """Verarbeitet eingesprochene Nachrichten vom Frontend."""
-#     temp_file_path = os.path.join(BACKEND_DIR, "temp_recording.webm")
-    
-#     try:
-#         # Audio temporär speichern
-#         with open(temp_file_path, "wb") as buffer:
-#             shutil.copyfileobj(audio.file, buffer)
-        
-#         # Audio-Pipeline aufrufen
-#         response_data = await process_audio_pipeline(temp_file_path)
-#         return response_data
-
-#     except Exception as e:
-#         raise HTTPException(status_code=500, detail=f"Audio-Verarbeitungsfehler: {str(e)}")
-    
-#     finally:
-#         audio.file.close()
-#         # Optional: Speicherplatz freigeben, wenn STT abgeschlossen ist
-#         if os.path.exists(temp_file_path):
-#             os.remove(temp_file_path)
+    return {"message": "Dieser Endpunkt ist noch in Arbeit. Bitte verwenden Sie den Frontend-Upload für Sprachnachrichten."}
+#async def upload_audio_endpoint(audio: UploadFile = File(...)):
+#    """Verarbeitet eingesprochene Nachrichten vom Frontend."""
+#    temp_webm = os.path.join(BACKEND_DIR, "temp_recording.webm")
+#    temp_wav  = os.path.join(BACKEND_DIR, "temp_recording.wav")
+#
+#    try:
+#        with open(temp_webm, "wb") as buffer:
+#            shutil.copyfileobj(audio.file, buffer)
+#
+#        # WebM → WAV konvertieren bevor pydub es anfasst
+#        result = subprocess.run([
+#            "ffmpeg", "-y",
+#            "-i", temp_webm,
+#            "-ar", "16000",
+#            "-ac", "1",
+#            temp_wav
+#        ], capture_output=True)
+#
+#        if result.returncode != 0:
+#            raise HTTPException(status_code=500, detail=f"FFmpeg Fehler: {result.stderr.decode()}")
+#
+#        response_data = await process_audio_pipeline(temp_wav)
+#        return response_data
+#
+#    except HTTPException:
+#        raise
+#    except Exception as e:
+#        traceback.print_exc()
+#        raise HTTPException(status_code=500, detail=f"Audio-Verarbeitungsfehler: {str(e)}")
+#
+#    finally:
+#        audio.file.close()
 
 # Frontend einbinden
 FRONTEND_DIR = os.path.join(BASE_DIR, "frontend") 

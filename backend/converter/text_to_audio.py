@@ -10,7 +10,6 @@ audio_output_path = DATA_DIR / "ausgabe.mp3"
 model_path = (BASE_DIR.parent.parent / ".model" / "de_DE-thorsten_emotional-medium.onnx").resolve()
 
 def convert_txt_to_mp3(raw_text):
-    
 
     # --- EMOTION AUSLESEN ---
     emotion_match = re.match(r'^\[(\d+)\]', raw_text)
@@ -23,36 +22,67 @@ def convert_txt_to_mp3(raw_text):
         speaker_id = 4
 
     # --- TEXT BEREINIGEN ---
-    # 0. Das geschützte Leerzeichen reparieren (NBSP)
+    # 0. Geschütztes Leerzeichen reparieren (NBSP)
     clean_text = raw_text.replace('\u00A0', ' ')
 
-    # 1. Gewünschte Pausen-Tokens in echte Satzzeichen umwandeln
+    # 0b. Umlaute ersetzen damit Piper sie nicht buchstabiert
+    UMLAUT_MAP = {
+        'ä': 'ae', 'ö': 'oe', 'ü': 'ue',
+        'Ä': 'Ae', 'Ö': 'Oe', 'Ü': 'Ue',
+        'ß': 'ss',
+    }
+    for umlaut, replacement in UMLAUT_MAP.items():
+        clean_text = clean_text.replace(umlaut, replacement)
+
+    # 1. Pausen-Tokens in echte Satzzeichen umwandeln
     clean_text = clean_text.replace('[PAUSE]', ' ... ')
-    
+
+    # 1b. ! und ? → Punkt damit Piper nach jedem Satzende pausiert
+    clean_text = clean_text.replace('!', '. ')
+    clean_text = clean_text.replace('?', '. ')
+
     # 2. Alle restlichen eckigen Klammern (z.B. [NEIN], [LACHEN]) entfernen
     clean_text = re.sub(r'\[.*?\]', '', clean_text)
 
-    # 3. Gedankenstriche immun umwandeln (via sicheren Unicode-IDs)
-    # \u002D = Standard-Minus, \u2013 = En-Dash (–), \u2014 = Em-Dash (—), \u2212 = Mathe-Minus
+    # 3. Gedankenstriche in Komma umwandeln
     clean_text = re.sub(r'[\u002D\u2013\u2014\u2212]+', ', ', clean_text)
 
-    # 4. Typografische Apostrophe (’) sicher in ein Standard-Apostroph (') umwandeln
+    # 3b. Sonderzeichen die Piper buchstabiert – normalisieren oder löschen
+    clean_text = clean_text.replace('~', '')
+    clean_text = clean_text.replace('§', '')
+    clean_text = clean_text.replace('^', '')
+    clean_text = clean_text.replace('|', ',')
+    clean_text = clean_text.replace('/', ' ')
+    clean_text = clean_text.replace('\\', '')
+    clean_text = clean_text.replace('%', ' Prozent')
+    clean_text = clean_text.replace('&', ' und ')
+    clean_text = clean_text.replace('@', ' at ')
+    clean_text = clean_text.replace('=', ' ')
+    clean_text = clean_text.replace('+', ' ')
+    clean_text = clean_text.replace('<', '')
+    clean_text = clean_text.replace('>', '')
+    clean_text = clean_text.replace('*', '')
+    clean_text = clean_text.replace('#', '')
+    clean_text = clean_text.replace('`', '')
+    clean_text = clean_text.replace('°', ' Grad')
+
+    # 4. Typografische Apostrophe normalisieren
     clean_text = clean_text.replace('\u2019', "'")
-    
-    # Komische typografische Anführungszeichen löschen (z.B. „ “ ”)
-    clean_text = re.sub(r'[\u201E\u201C\u201D]', '', clean_text)
+
+    # Typografische Anführungszeichen entfernen
+    clean_text = re.sub(r'[\u201E\u201C\u201D\u00AB\u00BB]', '', clean_text)
 
     # 5. Markdown-Formatierungen und Zeilenumbrüche entfernen
     clean_text = re.sub(r'[*_#]+', '', clean_text)
     clean_text = clean_text.replace('\n', ' ').replace('\r', '')
 
-    # 6. DER STAUBSAUGER (Jetzt komplett Datei-Encoding-sicher!)
-    # \w erkennt in Python 3 automatisch Buchstaben INKLUSIVE aller Umlaute!
-    # Erlaubt bleiben: Buchstaben (inkl. Ö, Ä, Ü, ß), Zahlen, Leerzeichen (\s), ., ! ? '
-    clean_text = re.sub(r'[^\w\s.,!?\']', '', clean_text)
+    # 6. DER STAUBSAUGER – ! und ? schon ersetzt, daher nicht mehr erlaubt
+    clean_text = re.sub(r'[^a-zA-Z0-9\s.,\']', '', clean_text)
 
     # 7. Überflüssige Leerzeichen reduzieren und Ränder säubern
     clean_text = re.sub(r'\s+', ' ', clean_text).strip()
+
+    print(f"Reinigter Text: {clean_text}")
 
     print(f"Generiere MP3-Audio (Emotion/Speaker ID: {speaker_id})...")
 
@@ -69,7 +99,7 @@ def convert_txt_to_mp3(raw_text):
         "-ar", "22050",
         "-ac", "1",
         "-i", "pipe:0",
-        "-af", "adelay=1000|1000",  # ← Fix: Stereo-safe (beide Kanäle)
+        "-af", "adelay=1000|1000",
         "-b:a", "128k",
         str(audio_output_path)
     ]
@@ -82,7 +112,6 @@ def convert_txt_to_mp3(raw_text):
             stderr=subprocess.PIPE
         )
 
-        # ✅ Fix 1: Text ZUERST senden und stdin schließen
         piper_stdout, piper_stderr = piper_process.communicate(
             input=clean_text.encode("utf-8")
         )
@@ -97,7 +126,6 @@ def convert_txt_to_mp3(raw_text):
 
         print(f"Piper hat {len(piper_stdout)} Bytes Rohdaten generiert.")
 
-        # ✅ Fix 2: FFmpeg bekommt die fertigen Piper-Daten
         ffmpeg_process = subprocess.Popen(
             ffmpeg_command,
             stdin=subprocess.PIPE,

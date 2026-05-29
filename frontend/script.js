@@ -31,7 +31,7 @@ function setState(state) {
   sendBtn.textContent = state === 'loading' ? '...' : 'Senden';
   
   // Audio-Button während des Ladens ebenfalls deaktivieren
-  audioBtn.disabled = state === 'loading';
+  audioBtn.disabled = true; //state === 'loading';
 }
 
 // =========================================
@@ -82,7 +82,7 @@ let audioChunks = [];
 let recordTimerInterval;
 let recordSeconds = 0;
 const audioBtnText = document.getElementById("audioBtnText"); 
-
+audioBtn.disabled = true;
 audioBtn.addEventListener("click", async () => {
   const isRecording = appContainer.classList.contains("recording");
 
